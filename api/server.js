@@ -16,6 +16,10 @@ const routes = {
     status: 'ok',
     service: serviceName,
   },
+  '/ready': {
+    ready: true,
+    service: serviceName,
+  },
   '/users': [sampleUser],
   '/users/1': sampleUser,
 };

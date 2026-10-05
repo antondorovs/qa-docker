@@ -30,6 +30,17 @@ test('health endpoint reports that the API is ready', async ({ request }) => {
   expect(await response.json()).toEqual(expectedPayload);
 });
 
+test('readiness endpoint reports that the API can serve traffic', async ({ request }) => {
+  const response = await request.get('/ready');
+  const expectedPayload = {
+    ready: true,
+    service: expectedServiceName,
+  };
+
+  expectJsonResponse(response, 200, expectedPayload);
+  expect(await response.json()).toEqual(expectedPayload);
+});
+
 test('returns a known test user', async ({ request }) => {
   const response = await request.get('/users/1');
   const expectedPayload = {
