@@ -41,6 +41,44 @@ test('readiness endpoint reports that the API can serve traffic', async ({ reque
   expect(await response.json()).toEqual(expectedPayload);
 });
 
+test('readiness query parameters do not change the payload', async ({ request }) => {
+  const response = await request.get('/ready?source=probe&verbose=true');
+  const expectedPayload = {
+    ready: true,
+    service: expectedServiceName,
+  };
+
+  expectJsonResponse(response, 200, expectedPayload);
+  expect(await response.json()).toEqual(expectedPayload);
+});
+
+test('readiness supports HEAD probes without a body', async ({ request }) => {
+  const getResponse = await request.get('/ready');
+  const headResponse = await request.head('/ready');
+  const expectedPayload = {
+    ready: true,
+    service: expectedServiceName,
+  };
+
+  expectJsonResponse(headResponse, 200, expectedPayload);
+  expect(headResponse.headers()['content-length']).toBe(
+    getResponse.headers()['content-length'],
+  );
+  expect(await headResponse.body()).toHaveLength(0);
+});
+
+test('readiness OPTIONS advertises probe methods without a body', async ({ request }) => {
+  const response = await request.fetch('/ready', { method: 'OPTIONS' });
+
+  expect(response.status()).toBe(204);
+  expect(response.headers()['allow']).toBe('GET, HEAD, OPTIONS');
+  expect(response.headers()['cache-control']).toBe('no-store');
+  expect(response.headers()['content-length']).toBe('0');
+  expect(response.headers()['content-type']).toBeUndefined();
+  expect(response.headers()['x-service-name']).toBe(expectedServiceName);
+  expect(await response.body()).toHaveLength(0);
+});
+
 test('returns a known test user', async ({ request }) => {
   const response = await request.get('/users/1');
   const expectedPayload = {

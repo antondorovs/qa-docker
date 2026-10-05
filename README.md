@@ -7,7 +7,7 @@ The first example starts:
 
 - a small Node.js API container;
 - a Playwright test container;
-- thirteen API checks against the service over the Compose network.
+- sixteen API checks against the service over the Compose network.
 
 ## Prerequisites
 
@@ -166,6 +166,8 @@ properties, such as `/constructor` or `/__proto__`, return the JSON `404` respon
 
 The `/ready` endpoint returns a lightweight readiness payload for contract tests
 that need a traffic-serving signal separate from the Docker healthcheck.
+Readiness checks cover query parameters, body-free `HEAD` probes, and `OPTIONS`
+method discovery, so monitoring clients can use the same endpoint consistently.
 
 When a container or CI retry is needed, Playwright records a trace on the
 first retry to make the failure easier to inspect afterward.
