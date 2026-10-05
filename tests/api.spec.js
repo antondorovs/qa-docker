@@ -139,6 +139,18 @@ test('returns 404 for an unknown route', async ({ request }) => {
   expect(await response.json()).toEqual(expectedPayload);
 });
 
+for (const pathname of ['/constructor', '/toString', '/__proto__']) {
+  test(`returns 404 for object property path ${pathname}`, async ({ request }) => {
+    const response = await request.get(pathname);
+    const expectedPayload = {
+      error: 'Not found',
+    };
+
+    expectJsonResponse(response, 404, expectedPayload);
+    expect(await response.json()).toEqual(expectedPayload);
+  });
+}
+
 test('rejects unsupported HTTP methods', async ({ request }) => {
   const response = await request.post('/health');
   const expectedPayload = {

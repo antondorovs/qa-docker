@@ -7,7 +7,7 @@ The first example starts:
 
 - a small Node.js API container;
 - a Playwright test container;
-- ten API checks against the service over the Compose network.
+- thirteen API checks against the service over the Compose network.
 
 ## Prerequisites
 
@@ -160,6 +160,9 @@ payload consistently.
 
 Route matching uses the request path, so query parameters do not change which
 sample endpoint handles a request.
+
+Only explicitly registered routes are served. Paths matching built-in object
+properties, such as `/constructor` or `/__proto__`, return the JSON `404` response.
 
 The `/ready` endpoint returns a lightweight readiness payload for contract tests
 that need a traffic-serving signal separate from the Docker healthcheck.
