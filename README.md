@@ -162,6 +162,9 @@ payload consistently.
 Route matching uses the request path, so query parameters do not change which
 sample endpoint handles a request.
 
+Malformed request URLs return a JSON `400 Bad Request` response instead of
+terminating the API process, so subsequent requests can still be served.
+
 Only explicitly registered routes are served. Paths matching built-in object
 properties, such as `/constructor` or `/__proto__`, return the JSON `404` response.
 

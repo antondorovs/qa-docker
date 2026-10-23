@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const http = require('node:http');
 
 const expectedServiceName = process.env.EXPECTED_SERVICE_NAME || 'demo-api';
 
@@ -219,4 +220,36 @@ test('rejects unsupported HTTP methods', async ({ request }) => {
   expectJsonResponse(response, 405, expectedPayload);
   expect(response.headers().allow).toBe('GET, HEAD, OPTIONS');
   expect(await response.json()).toEqual(expectedPayload);
+});
+
+test('rejects a malformed request URL without stopping the API', async ({ request, baseURL }) => {
+  const response = await new Promise((resolve, reject) => {
+    const target = new URL(baseURL);
+    const outgoing = http.get({
+      hostname: target.hostname,
+      port: target.port,
+      path: 'http://[',
+      timeout: 5000,
+    }, (incoming) => {
+      const chunks = [];
+      incoming.on('data', (chunk) => chunks.push(chunk));
+      incoming.on('error', reject);
+      incoming.on('end', () => resolve({
+        status: () => incoming.statusCode,
+        headers: () => incoming.headers,
+        body: Buffer.concat(chunks).toString('utf8'),
+      }));
+    });
+    outgoing.on('error', reject);
+    outgoing.on('timeout', () => outgoing.destroy(new Error('Request timed out')));
+  });
+  const expectedPayload = { error: 'Invalid request URL' };
+
+  expectJsonResponse(response, 400, expectedPayload);
+  expect(JSON.parse(response.body)).toEqual(expectedPayload);
+
+  const healthResponse = await request.get('/health');
+  const expectedHealth = { status: 'ok', service: expectedServiceName };
+  expectJsonResponse(healthResponse, 200, expectedHealth);
+  expect(await healthResponse.json()).toEqual(expectedHealth);
 });

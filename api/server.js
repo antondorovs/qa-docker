@@ -28,11 +28,18 @@ const server = http.createServer((request, response) => {
   const isHeadRequest = request.method === 'HEAD';
   const isOptionsRequest = request.method === 'OPTIONS';
   const methodAllowed = request.method === 'GET' || isHeadRequest || isOptionsRequest;
-  const { pathname } = new URL(request.url, 'http://localhost');
-  const body = methodAllowed && Object.hasOwn(routes, pathname) ? routes[pathname] : undefined;
-  const statusCode = isOptionsRequest && body ? 204 : methodAllowed ? (body ? 200 : 404) : 405;
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(request.url, 'http://localhost');
+  } catch {
+    parsedUrl = null;
+  }
+  const body = parsedUrl && methodAllowed && Object.hasOwn(routes, parsedUrl.pathname)
+    ? routes[parsedUrl.pathname] : undefined;
+  const statusCode = !parsedUrl ? 400 : isOptionsRequest && body ? 204
+    : methodAllowed ? (body ? 200 : 404) : 405;
   const payload = statusCode === 204 ? undefined : body || {
-    error: methodAllowed ? 'Not found' : 'Method not allowed',
+    error: !parsedUrl ? 'Invalid request URL' : methodAllowed ? 'Not found' : 'Method not allowed',
   };
   const responseBody = payload ? JSON.stringify(payload) : '';
 
