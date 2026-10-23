@@ -178,14 +178,35 @@ test('returns 404 for an unknown route', async ({ request }) => {
 });
 
 for (const pathname of ['/constructor', '/toString', '/__proto__']) {
-  test(`returns 404 for object property path ${pathname}`, async ({ request }) => {
-    const response = await request.get(pathname);
-    const expectedPayload = {
-      error: 'Not found',
-    };
+  for (const method of ['GET', 'OPTIONS']) {
+    test(`returns 404 for ${method} object property path ${pathname}`, async ({ request }) => {
+      const response = await request.fetch(pathname, { method });
+      const expectedPayload = {
+        error: 'Not found',
+      };
 
-    expectJsonResponse(response, 404, expectedPayload);
-    expect(await response.json()).toEqual(expectedPayload);
+      expectJsonResponse(response, 404, expectedPayload);
+      if (method === 'OPTIONS') {
+        expect(response.headers().allow).toBe('GET, HEAD, OPTIONS');
+      }
+      expect(await response.json()).toEqual(expectedPayload);
+    });
+  }
+}
+
+for (const pathname of ['/missing', '/constructor', '/toString', '/__proto__']) {
+  test(`HEAD preserves the 404 representation headers for ${pathname}`, async ({ request }) => {
+    const getResponse = await request.get(pathname);
+    const headResponse = await request.head(pathname);
+    const expectedPayload = { error: 'Not found' };
+
+    expectJsonResponse(getResponse, 404, expectedPayload);
+    expect(await getResponse.json()).toEqual(expectedPayload);
+    expectJsonResponse(headResponse, 404, expectedPayload);
+    expect(headResponse.headers()['content-length']).toBe(
+      getResponse.headers()['content-length'],
+    );
+    expect(await headResponse.body()).toHaveLength(0);
   });
 }
 
