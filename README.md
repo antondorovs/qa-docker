@@ -144,6 +144,7 @@ version marker without changing the JSON payload.
 The sample API accepts `GET`, `HEAD`, and `OPTIONS` requests. A `HEAD` response
 has the same headers as `GET`, without a response body. `OPTIONS` returns `204`
 for a known route and advertises the supported methods in the `Allow` header.
+These `204` responses omit `Content-Length`, as required by HTTP semantics.
 For an unknown route, `OPTIONS` returns the same JSON `404 Not Found` payload as
 `GET`. Other methods return `405 Method Not Allowed` with the same header.
 

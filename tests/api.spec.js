@@ -73,7 +73,7 @@ test('readiness OPTIONS advertises probe methods without a body', async ({ reque
   expect(response.status()).toBe(204);
   expect(response.headers()['allow']).toBe('GET, HEAD, OPTIONS');
   expect(response.headers()['cache-control']).toBe('no-store');
-  expect(response.headers()['content-length']).toBe('0');
+  expect(response.headers()['content-length']).toBeUndefined();
   expect(response.headers()['content-type']).toBeUndefined();
   expect(response.headers()['x-service-name']).toBe(expectedServiceName);
   expect(await response.body()).toHaveLength(0);
@@ -127,7 +127,7 @@ test('advertises supported methods with OPTIONS', async ({ request }) => {
   expect(response.status()).toBe(204);
   expect(response.headers()['allow']).toBe('GET, HEAD, OPTIONS');
   expect(response.headers()['cache-control']).toBe('no-store');
-  expect(response.headers()['content-length']).toBe('0');
+  expect(response.headers()['content-length']).toBeUndefined();
   expect(response.headers()['content-type']).toBeUndefined();
   expect(response.headers()['referrer-policy']).toBe('no-referrer');
   expect(response.headers()['x-frame-options']).toBe('DENY');

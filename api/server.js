@@ -39,7 +39,7 @@ const server = http.createServer((request, response) => {
   response.writeHead(statusCode, {
     ...(isOptionsRequest || !methodAllowed ? { Allow: 'GET, HEAD, OPTIONS' } : {}),
     'Cache-Control': 'no-store',
-    'Content-Length': Buffer.byteLength(responseBody),
+    ...(statusCode !== 204 ? { 'Content-Length': Buffer.byteLength(responseBody) } : {}),
     ...(payload ? { 'Content-Type': 'application/json; charset=utf-8' } : {}),
     'Referrer-Policy': 'no-referrer',
     'X-Frame-Options': 'DENY',
