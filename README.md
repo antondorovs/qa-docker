@@ -44,6 +44,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-tests.ps1
 
 Both helper scripts return the Playwright test exit code and clean up the
 Compose containers and network after the run.
+If cleanup also fails, the original test failure takes precedence. When tests
+pass but cleanup fails, the helper returns the cleanup failure instead.
+
+Check the shell runner's exit codes and cleanup behavior without starting Docker:
+
+```bash
+sh scripts/test-runner.sh
+```
 
 The test and validation helpers resolve the project directory from their own
 location. You can invoke them by absolute path from another working directory;
