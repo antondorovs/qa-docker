@@ -45,6 +45,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-tests.ps1
 Both helper scripts return the Playwright test exit code and clean up the
 Compose containers and network after the run.
 
+The test and validation helpers resolve the project directory from their own
+location. You can invoke them by absolute path from another working directory;
+Compose will still use this project's configuration and report directories.
+
 The Compose project name is fixed to `qa-docker-lab`, keeping container,
 image, and network names predictable across shells and launch directories.
 

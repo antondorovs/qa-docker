@@ -2,6 +2,8 @@
 
 set -eu
 
+cd "$(dirname "$0")/.."
+
 cleanup() {
   docker compose down --remove-orphans
 }
