@@ -211,16 +211,28 @@ for (const pathname of ['/missing', '/constructor', '/toString', '/__proto__']) 
   });
 }
 
-test('rejects unsupported HTTP methods', async ({ request }) => {
-  const response = await request.post('/health');
-  const expectedPayload = {
-    error: 'Method not allowed',
-  };
+for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
+  for (const pathname of ['/health', '/users/1', '/missing']) {
+    test(`rejects unsupported ${method} requests to ${pathname}`, async ({ request }) => {
+      const response = await request.fetch(pathname, { method });
+      const expectedPayload = {
+        error: 'Method not allowed',
+      };
 
-  expectJsonResponse(response, 405, expectedPayload);
-  expect(response.headers().allow).toBe('GET, HEAD, OPTIONS');
-  expect(await response.json()).toEqual(expectedPayload);
-});
+      expectJsonResponse(response, 405, expectedPayload);
+      expect(response.headers().allow).toBe('GET, HEAD, OPTIONS');
+      expect(await response.json()).toEqual(expectedPayload);
+
+      const userResponse = await request.get('/users/1');
+      expect(userResponse.status()).toBe(200);
+      expect(await userResponse.json()).toEqual({
+        id: 1,
+        name: 'Ada Lovelace',
+        role: 'QA Engineer',
+      });
+    });
+  }
+}
 
 test('rejects a malformed request URL without stopping the API', async ({ request, baseURL }) => {
   const response = await new Promise((resolve, reject) => {
