@@ -7,7 +7,7 @@ The first example starts:
 
 - a small Node.js API container;
 - a Playwright test container;
-- sixteen API checks against the service over the Compose network.
+- API contract checks against the service over the Compose network.
 
 ## Prerequisites
 
@@ -52,6 +52,16 @@ Check the shell runner's exit codes and cleanup behavior without starting Docker
 ```bash
 sh scripts/test-runner.sh
 ```
+
+Check the same exit-code and cleanup contract for the Windows PowerShell runner:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-runner.ps1
+```
+
+These checks use a fake Docker command to cover successful runs, test failures,
+cleanup failures, and simultaneous failures. They also verify the exact Compose
+commands and project directory when invoked from another working directory.
 
 The test and validation helpers resolve the project directory from their own
 location. You can invoke them by absolute path from another working directory;
@@ -298,6 +308,8 @@ npm test
 |-- scripts/
 |   |-- run-tests.ps1
 |   |-- run-tests.sh
+|   |-- test-runner.ps1
+|   |-- test-runner.sh
 |   |-- validate-compose.ps1
 |   `-- validate-compose.sh
 |-- tests/
