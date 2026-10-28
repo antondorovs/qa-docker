@@ -46,6 +46,8 @@ Both helper scripts return the Playwright test exit code and clean up the
 Compose containers and network after the run.
 If cleanup also fails, the original test failure takes precedence. When tests
 pass but cleanup fails, the helper returns the cleanup failure instead.
+The PowerShell helper also preserves these exit codes when PowerShell 7's
+`PSNativeCommandUseErrorActionPreference` is enabled by the caller.
 
 Check the shell runner's exit codes and cleanup behavior without starting Docker:
 
@@ -62,6 +64,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-runner.ps1
 These checks use a fake Docker command to cover successful runs, test failures,
 cleanup failures, and simultaneous failures. They also verify the exact Compose
 commands and project directory when invoked from another working directory.
+The PowerShell checks run each case with native-command errors enabled and disabled.
 
 The test and validation helpers resolve the project directory from their own
 location. You can invoke them by absolute path from another working directory;

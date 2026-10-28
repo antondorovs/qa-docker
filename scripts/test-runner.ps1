@@ -27,7 +27,11 @@ exit /b 99
         @{ Up = 0; Down = 0; Expected = 0 },
         @{ Up = 7; Down = 0; Expected = 7 },
         @{ Up = 0; Down = 9; Expected = 9 },
-        @{ Up = 7; Down = 9; Expected = 7 }
+        @{ Up = 7; Down = 9; Expected = 7 },
+        @{ Up = 0; Down = 0; Expected = 0; NativeErrors = $true },
+        @{ Up = 7; Down = 0; Expected = 7; NativeErrors = $true },
+        @{ Up = 0; Down = 9; Expected = 9; NativeErrors = $true },
+        @{ Up = 7; Down = 9; Expected = 7; NativeErrors = $true }
     )) {
         $env:UP_EXIT = [string]$case.Up
         $env:DOWN_EXIT = [string]$case.Down
@@ -35,7 +39,16 @@ exit /b 99
 
         Push-Location -LiteralPath $testDirectory
         try {
-            & $powerShell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $projectDirectory 'scripts/run-tests.ps1')
+            $runner = Join-Path $projectDirectory 'scripts/run-tests.ps1'
+            $command = @(
+                '$ErrorActionPreference = ''Stop''',
+                '$ProgressPreference = ''SilentlyContinue''',
+                ('$PSNativeCommandUseErrorActionPreference = ${0}' -f ([bool]$case.NativeErrors).ToString().ToLowerInvariant()),
+                ("& '{0}'" -f $runner.Replace("'", "''")),
+                'exit $LASTEXITCODE'
+            ) -join "`n"
+            $encodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
+            & $powerShell -NoProfile -ExecutionPolicy Bypass -OutputFormat Text -EncodedCommand $encodedCommand
             $actualExit = $LASTEXITCODE
         }
         finally {
@@ -43,7 +56,7 @@ exit /b 99
         }
 
         if ($actualExit -ne $case.Expected) {
-            throw "up=$($case.Up) down=$($case.Down): expected exit $($case.Expected), got $actualExit"
+            throw "up=$($case.Up) down=$($case.Down) nativeErrors=$([bool]$case.NativeErrors): expected exit $($case.Expected), got $actualExit"
         }
 
         $expectedCalls = @(

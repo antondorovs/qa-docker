@@ -1,5 +1,8 @@
 $testExitCode = 0
 
+# Handle Docker exit codes explicitly, including when the caller enables native errors.
+$PSNativeCommandUseErrorActionPreference = $false
+
 Push-Location -LiteralPath (Split-Path -Parent $PSScriptRoot)
 
 try {
