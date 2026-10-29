@@ -19,5 +19,6 @@ cleanup() {
 }
 
 trap cleanup EXIT
+trap 'exit 143' TERM
 
 docker compose up --build --abort-on-container-exit --exit-code-from tests

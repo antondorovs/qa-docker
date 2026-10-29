@@ -48,6 +48,9 @@ If cleanup also fails, the original test failure takes precedence. When tests
 pass but cleanup fails, the helper returns the cleanup failure instead.
 The PowerShell helper also preserves these exit codes when PowerShell 7's
 `PSNativeCommandUseErrorActionPreference` is enabled by the caller.
+On Linux, the shell helper also cleans up after `SIGTERM` and returns `143`,
+including when cleanup fails. The shell may defer signal handling until the
+foreground Docker command returns.
 
 Check the shell runner's exit codes and cleanup behavior without starting Docker:
 
@@ -65,6 +68,8 @@ These checks use a fake Docker command to cover successful runs, test failures,
 cleanup failures, and simultaneous failures. They also verify the exact Compose
 commands and project directory when invoked from another working directory.
 The PowerShell checks run each case with native-command errors enabled and disabled.
+On Linux, the shell checks also send `SIGTERM` during a running command and verify
+cleanup with both successful and failing teardown commands.
 
 The test and validation helpers resolve the project directory from their own
 location. You can invoke them by absolute path from another working directory;
