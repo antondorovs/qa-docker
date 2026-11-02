@@ -106,6 +106,44 @@ test('returns the sample users list', async ({ request }) => {
   expect(await response.json()).toEqual(expectedPayload);
 });
 
+for (const pathname of ['/users', '/users/1']) {
+  test(`HEAD preserves the user representation headers for ${pathname}`, async ({ request }) => {
+    const user = { id: 1, name: 'Ada Lovelace', role: 'QA Engineer' };
+    const expectedPayload = pathname === '/users' ? [user] : user;
+    const getResponse = await request.get(pathname);
+    const headResponse = await request.head(`${pathname}?source=probe`);
+
+    expectJsonResponse(getResponse, 200, expectedPayload);
+    expect(await getResponse.json()).toEqual(expectedPayload);
+    expectJsonResponse(headResponse, 200, expectedPayload);
+    expect(headResponse.headers()['content-length']).toBe(
+      getResponse.headers()['content-length'],
+    );
+    expect(await headResponse.body()).toHaveLength(0);
+  });
+
+  test(`OPTIONS discovers methods without a user representation for ${pathname}`, async ({ request }) => {
+    const response = await request.fetch(`${pathname}?source=discovery`, { method: 'OPTIONS' });
+    const getResponse = await request.get(pathname);
+
+    expect(response.status()).toBe(204);
+    expect(response.headers().allow).toBe('GET, HEAD, OPTIONS');
+    expect(response.headers()['content-length']).toBeUndefined();
+    expect(response.headers()['content-type']).toBeUndefined();
+    for (const header of [
+      'cache-control', 'referrer-policy', 'x-frame-options',
+      'x-content-type-options', 'x-api-version', 'x-service-name',
+    ]) {
+      expect(response.headers()[header]).toBe(getResponse.headers()[header]);
+    }
+    expect(response.headers()['x-request-id']).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
+    expect(response.headers()['x-request-id']).not.toBe(getResponse.headers()['x-request-id']);
+    expect(await response.body()).toHaveLength(0);
+  });
+}
+
 test('supports HEAD without returning a response body', async ({ request }) => {
   const getResponse = await request.get('/health');
   const headResponse = await request.head('/health');
