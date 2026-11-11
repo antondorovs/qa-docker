@@ -1,5 +1,8 @@
 $ErrorActionPreference = "Stop"
 
+# Preserve the Docker exit code when the caller enables native command errors.
+$PSNativeCommandUseErrorActionPreference = $false
+
 Push-Location -LiteralPath (Split-Path -Parent $PSScriptRoot)
 
 try {

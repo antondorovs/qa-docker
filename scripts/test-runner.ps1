@@ -17,6 +17,7 @@ try {
 echo(%CD%^|%*>>"%CALL_LOG%"
 if "%1 %2"=="compose up" exit /b %UP_EXIT%
 if "%1 %2"=="compose down" exit /b %DOWN_EXIT%
+if "%1 %2 %3 %4"=="compose -f compose.yaml config" exit /b %UP_EXIT%
 exit /b 99
 '@ | Set-Content -LiteralPath (Join-Path $testDirectory 'docker.cmd') -Encoding Ascii
 
@@ -31,7 +32,8 @@ exit /b 99
         @{ Up = 0; Down = 0; Expected = 0; NativeErrors = $true },
         @{ Up = 7; Down = 0; Expected = 7; NativeErrors = $true },
         @{ Up = 0; Down = 9; Expected = 9; NativeErrors = $true },
-        @{ Up = 7; Down = 9; Expected = 7; NativeErrors = $true }
+        @{ Up = 7; Down = 9; Expected = 7; NativeErrors = $true },
+        @{ Up = 7; Expected = 7; NativeErrors = $true; Validate = $true }
     )) {
         $env:UP_EXIT = [string]$case.Up
         $env:DOWN_EXIT = [string]$case.Down
@@ -39,7 +41,8 @@ exit /b 99
 
         Push-Location -LiteralPath $testDirectory
         try {
-            $runner = Join-Path $projectDirectory 'scripts/run-tests.ps1'
+            $scriptName = if ($case.Validate) { 'validate-compose.ps1' } else { 'run-tests.ps1' }
+            $runner = Join-Path $PSScriptRoot $scriptName
             $command = @(
                 '$ErrorActionPreference = ''Stop''',
                 '$ProgressPreference = ''SilentlyContinue''',
@@ -59,10 +62,14 @@ exit /b 99
             throw "up=$($case.Up) down=$($case.Down) nativeErrors=$([bool]$case.NativeErrors): expected exit $($case.Expected), got $actualExit"
         }
 
-        $expectedCalls = @(
-            "$projectDirectory|compose up --build --abort-on-container-exit --exit-code-from tests",
-            "$projectDirectory|compose down --remove-orphans"
-        )
+        $expectedCalls = if ($case.Validate) {
+            @("$projectDirectory|compose -f compose.yaml config --quiet")
+        } else {
+            @(
+                "$projectDirectory|compose up --build --abort-on-container-exit --exit-code-from tests",
+                "$projectDirectory|compose down --remove-orphans"
+            )
+        }
         $actualCalls = @(Get-Content -LiteralPath $env:CALL_LOG)
         if (($actualCalls -join "`n") -cne ($expectedCalls -join "`n")) {
             throw "Unexpected Docker commands or working directory: $($actualCalls -join '; ')"
