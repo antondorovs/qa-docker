@@ -18,6 +18,7 @@ echo(%CD%^|%*>>"%CALL_LOG%"
 if "%1 %2"=="compose up" exit /b %UP_EXIT%
 if "%1 %2"=="compose down" exit /b %DOWN_EXIT%
 if "%1 %2 %3 %4"=="compose -f compose.yaml config" exit /b %UP_EXIT%
+if "%1 %2 %3 %4 %5 %6"=="compose -f compose.yaml -f compose.debug.yaml config" exit /b %DOWN_EXIT%
 exit /b 99
 '@ | Set-Content -LiteralPath (Join-Path $testDirectory 'docker.cmd') -Encoding Ascii
 
@@ -33,7 +34,9 @@ exit /b 99
         @{ Up = 7; Down = 0; Expected = 7; NativeErrors = $true },
         @{ Up = 0; Down = 9; Expected = 9; NativeErrors = $true },
         @{ Up = 7; Down = 9; Expected = 7; NativeErrors = $true },
-        @{ Up = 7; Expected = 7; NativeErrors = $true; Validate = $true }
+        @{ Up = 7; Down = 0; Expected = 7; NativeErrors = $true; Validate = $true },
+        @{ Up = 0; Down = 0; Expected = 0; NativeErrors = $true; Validate = $true },
+        @{ Up = 0; Down = 9; Expected = 9; NativeErrors = $true; Validate = $true }
     )) {
         $env:UP_EXIT = [string]$case.Up
         $env:DOWN_EXIT = [string]$case.Down
@@ -59,11 +62,16 @@ exit /b 99
         }
 
         if ($actualExit -ne $case.Expected) {
-            throw "up=$($case.Up) down=$($case.Down) nativeErrors=$([bool]$case.NativeErrors): expected exit $($case.Expected), got $actualExit"
+            throw "$scriptName up=$($case.Up) down=$($case.Down) nativeErrors=$([bool]$case.NativeErrors): expected exit $($case.Expected), got $actualExit"
         }
 
         $expectedCalls = if ($case.Validate) {
-            @("$projectDirectory|compose -f compose.yaml config --quiet")
+            @(
+                "$projectDirectory|compose -f compose.yaml config --quiet"
+                if ($case.Up -eq 0) {
+                    "$projectDirectory|compose -f compose.yaml -f compose.debug.yaml config --quiet"
+                }
+            )
         } else {
             @(
                 "$projectDirectory|compose up --build --abort-on-container-exit --exit-code-from tests",
@@ -76,7 +84,7 @@ exit /b 99
         }
     }
 
-    Write-Output 'PowerShell runner exit codes, cleanup, and project directory checks passed.'
+    Write-Output 'PowerShell runner and validator checks passed.'
 }
 finally {
     foreach ($name in $originalEnvironment.Keys) {
