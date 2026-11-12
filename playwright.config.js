@@ -5,6 +5,7 @@ module.exports = defineConfig({
   outputDir: 'test-results/artifacts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
+  failOnFlakyTests: !!process.env.CI,
   maxFailures: process.env.CI ? 1 : undefined,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 2 : undefined,
