@@ -314,3 +314,31 @@ for (const method of ['GET', 'HEAD', 'POST', 'OPTIONS']) {
     expect(await healthResponse.json()).toEqual(expectedHealth);
   });
 }
+
+test('parallel requests receive distinct IDs across success and error responses', async ({ request }) => {
+  const cases = [
+    { method: 'GET', path: '/health', status: 200 },
+    { method: 'HEAD', path: '/users/1', status: 200 },
+    { method: 'OPTIONS', path: '/ready', status: 204 },
+    { method: 'GET', path: '/missing', status: 404 },
+    { method: 'HEAD', path: '/missing', status: 404 },
+    { method: 'OPTIONS', path: '/missing', status: 404 },
+    { method: 'POST', path: '/users/1', status: 405 },
+    { method: 'DELETE', path: '/health', status: 405 },
+  ];
+  const requests = Array.from({ length: 4 }, () => cases).flat();
+  const responses = await Promise.all(requests.map(async ({ method, path, status }) => {
+    const response = await request.fetch(path, { method });
+    expect(response.status()).toBe(status);
+    expect(response.headers()['x-request-id']).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
+    expect(response.headers()['x-service-name']).toBe(expectedServiceName);
+    if (method === 'HEAD' || status === 204) {
+      expect(await response.body()).toHaveLength(0);
+    }
+    return response;
+  }));
+  const requestIds = responses.map((response) => response.headers()['x-request-id']);
+  expect(new Set(requestIds).size).toBe(requests.length);
+});
