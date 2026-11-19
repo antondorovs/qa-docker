@@ -15,6 +15,10 @@ trap cleanup EXIT
 cat > "$test_dir/docker" <<'EOF'
 #!/usr/bin/env sh
 printf '%s|%s\n' "$PWD" "$*" >> "$CALL_LOG"
+case "$*" in
+  'compose -f compose.yaml config --quiet') exit "$UP_EXIT" ;;
+  'compose -f compose.yaml -f compose.debug.yaml config --quiet') exit "$DOWN_EXIT" ;;
+esac
 case "$1 $2" in
   'compose up') sleep "${UP_WAIT:-0}"; exit "$UP_EXIT" ;;
   'compose down') exit "$DOWN_EXIT" ;;
@@ -97,3 +101,39 @@ case "$(uname -s)" in
     ;;
   *) printf '%s\n' 'SIGTERM checks require Linux; ordinary exit-code checks passed.' ;;
 esac
+
+check_validation() {
+  standard_exit=$1
+  debug_exit=$2
+  expected_exit=$3
+  : > "$test_dir/calls"
+
+  if (
+    cd "$test_dir"
+    PATH="$test_dir:$PATH" UP_EXIT="$standard_exit" DOWN_EXIT="$debug_exit" \
+      CALL_LOG="$test_dir/calls" sh "$project_dir/scripts/validate-compose.sh"
+  ); then
+    actual_exit=0
+  else
+    actual_exit=$?
+  fi
+  if [ "$actual_exit" -ne "$expected_exit" ]; then
+    printf 'validation standard=%s debug=%s: expected exit %s, got %s\n' \
+      "$standard_exit" "$debug_exit" "$expected_exit" "$actual_exit" >&2
+    exit 1
+  fi
+
+  printf '%s|%s\n' "$project_dir" 'compose -f compose.yaml config --quiet' > "$test_dir/expected"
+  if [ "$standard_exit" -eq 0 ]; then
+    printf '%s|%s\n' "$project_dir" \
+      'compose -f compose.yaml -f compose.debug.yaml config --quiet' >> "$test_dir/expected"
+  fi
+  cmp "$test_dir/expected" "$test_dir/calls"
+}
+
+check_validation 0 0 0
+check_validation 7 0 7
+check_validation 0 9 9
+check_validation 7 9 7
+
+printf '%s\n' 'Compose validation exit-code and fail-fast checks passed.'
