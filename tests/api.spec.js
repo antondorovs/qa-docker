@@ -315,6 +315,67 @@ for (const method of ['GET', 'HEAD', 'POST', 'OPTIONS']) {
   });
 }
 
+test('mixed responses preserve framing on a reused HTTP connection', async ({ baseURL }) => {
+  const agent = new http.Agent({ keepAlive: true, maxSockets: 1 });
+  const health = { status: 'ok', service: expectedServiceName };
+  const user = { id: 1, name: 'Ada Lovelace', role: 'QA Engineer' };
+  const cases = [
+    { method: 'GET', path: '/health', status: 200, payload: health },
+    { method: 'HEAD', path: '/health', status: 200, payload: health },
+    { method: 'OPTIONS', path: '/health', status: 204 },
+    { method: 'GET', path: '/missing', status: 404, payload: { error: 'Not found' } },
+    { method: 'HEAD', path: '/missing', status: 404, payload: { error: 'Not found' } },
+    { method: 'OPTIONS', path: '/missing', status: 404, payload: { error: 'Not found' } },
+    { method: 'POST', path: '/users/1', status: 405, payload: { error: 'Method not allowed' } },
+    { method: 'GET', path: '/users/1', status: 200, payload: user },
+  ];
+  let connection;
+
+  try {
+    for (const { method, path, status, payload } of cases) {
+      const response = await new Promise((resolve, reject) => {
+        const outgoing = http.request(new URL(path, baseURL), {
+          agent, method, timeout: 5000,
+        }, (incoming) => {
+          const socket = incoming.socket;
+          const chunks = [];
+          incoming.on('data', (chunk) => chunks.push(chunk));
+          incoming.on('error', reject);
+          incoming.on('end', () => resolve({
+            status: () => incoming.statusCode,
+            headers: () => incoming.headers,
+            body: Buffer.concat(chunks).toString('utf8'),
+            socket,
+          }));
+        });
+        outgoing.on('error', reject);
+        outgoing.on('timeout', () => outgoing.destroy(new Error('Request timed out')));
+        outgoing.end();
+      });
+
+      connection ??= response.socket;
+      expect(response.socket).toBe(connection);
+      if (status === 204) {
+        expect(response.status()).toBe(204);
+        expect(response.headers()['content-length']).toBeUndefined();
+        expect(response.headers()['content-type']).toBeUndefined();
+      } else {
+        expectJsonResponse(response, status, payload);
+      }
+      if (method === 'OPTIONS' || status === 405) {
+        expect(response.headers().allow).toBe('GET, HEAD, OPTIONS');
+      }
+      if (method === 'HEAD' || status === 204) {
+        expect(response.body).toBe('');
+      } else {
+        expect(JSON.parse(response.body)).toEqual(payload);
+      }
+    }
+  } finally {
+    agent.destroy();
+  }
+});
+
 test('parallel requests receive distinct IDs across success and error responses', async ({ request }) => {
   const cases = [
     { method: 'GET', path: '/health', status: 200 },
