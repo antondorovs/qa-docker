@@ -34,6 +34,11 @@ exit /b 99
         @{ Up = 7; Down = 0; Expected = 7; NativeErrors = $true },
         @{ Up = 0; Down = 9; Expected = 9; NativeErrors = $true },
         @{ Up = 7; Down = 9; Expected = 7; NativeErrors = $true },
+        @{ Up = 0; Down = 0; Expected = 0; Validate = $true },
+        @{ Up = 7; Down = 0; Expected = 7; Validate = $true },
+        @{ Up = 0; Down = 9; Expected = 9; Validate = $true },
+        @{ Up = 7; Down = 9; Expected = 7; Validate = $true },
+        @{ Up = 7; Down = 9; Expected = 7; NativeErrors = $true; Validate = $true },
         @{ Up = 7; Down = 0; Expected = 7; NativeErrors = $true; Validate = $true },
         @{ Up = 0; Down = 0; Expected = 0; NativeErrors = $true; Validate = $true },
         @{ Up = 0; Down = 9; Expected = 9; NativeErrors = $true; Validate = $true }
