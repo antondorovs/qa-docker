@@ -206,6 +206,33 @@ test('assigns a unique ID to each request', async ({ request }) => {
   );
 });
 
+test('client request IDs cannot replace server-generated response IDs', async ({ request }) => {
+  const suppliedId = '12345678-1234-4234-8234-123456789abc';
+  const cases = [
+    { method: 'GET', path: '/health', status: 200 },
+    { method: 'HEAD', path: '/health', status: 200 },
+    { method: 'OPTIONS', path: '/health', status: 204 },
+    { method: 'GET', path: '/missing', status: 404 },
+    { method: 'POST', path: '/users/1', status: 405 },
+  ];
+  const responseIds = [];
+
+  for (const { method, path, status } of cases) {
+    const response = await request.fetch(path, {
+      method,
+      headers: { 'X-Request-Id': suppliedId },
+    });
+    const responseId = response.headers()['x-request-id'];
+    expect(response.status()).toBe(status);
+    expect(responseId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
+    expect(responseId).not.toBe(suppliedId);
+    responseIds.push(responseId);
+  }
+  expect(new Set(responseIds).size).toBe(cases.length);
+});
+
 test('returns 404 for an unknown route', async ({ request }) => {
   const response = await request.get('/missing');
   const expectedPayload = {
