@@ -277,9 +277,12 @@ for (const pathname of ['/missing', '/constructor', '/toString', '/__proto__']) 
 }
 
 for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
-  for (const pathname of ['/health', '/users/1', '/missing']) {
+  for (const pathname of ['/health', '/users', '/users/1', '/missing']) {
     test(`rejects unsupported ${method} requests to ${pathname}`, async ({ request }) => {
-      const response = await request.fetch(pathname, { method });
+      const response = await request.fetch(pathname, {
+        method,
+        data: { id: 2, name: 'Replacement User', role: 'Administrator' },
+      });
       const expectedPayload = {
         error: 'Method not allowed',
       };
@@ -295,6 +298,11 @@ for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
         name: 'Ada Lovelace',
         role: 'QA Engineer',
       });
+      const usersResponse = await request.get('/users');
+      expect(usersResponse.status()).toBe(200);
+      expect(await usersResponse.json()).toEqual([
+        { id: 1, name: 'Ada Lovelace', role: 'QA Engineer' },
+      ]);
     });
   }
 }
