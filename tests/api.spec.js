@@ -106,6 +106,30 @@ test('returns the sample users list', async ({ request }) => {
   expect(await response.json()).toEqual(expectedPayload);
 });
 
+for (const pathname of ['/users', '/users/1', '/users/2']) {
+  test(`query parameters cannot select or replace users at ${pathname}`, async ({ request }) => {
+    const user = { id: 1, name: 'Ada Lovelace', role: 'QA Engineer' };
+    const status = pathname === '/users/2' ? 404 : 200;
+    const expectedPayload = pathname === '/users/2'
+      ? { error: 'Not found' } : pathname === '/users' ? [user] : user;
+    const query = new URLSearchParams([
+      ['id', '2'], ['id', '1'], ['name', 'Replacement User'],
+      ['role', 'Administrator'], ['path', '/users/1'],
+    ]);
+    const response = await request.get(`${pathname}?${query}`);
+
+    expectJsonResponse(response, status, expectedPayload);
+    expect(await response.json()).toEqual(expectedPayload);
+
+    const usersResponse = await request.get('/users');
+    expectJsonResponse(usersResponse, 200, [user]);
+    expect(await usersResponse.json()).toEqual([user]);
+    const userResponse = await request.get('/users/1');
+    expectJsonResponse(userResponse, 200, user);
+    expect(await userResponse.json()).toEqual(user);
+  });
+}
+
 for (const pathname of ['/users', '/users/1']) {
   test(`HEAD preserves the user representation headers for ${pathname}`, async ({ request }) => {
     const user = { id: 1, name: 'Ada Lovelace', role: 'QA Engineer' };
